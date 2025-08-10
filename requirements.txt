@@ -1,5 +1,5 @@
 fastapi
 uvicorn
-htppx
+httpx
 python-dotenv
 groq
