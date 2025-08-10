@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en" class="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WeatherWise — Election Weather Dashboard</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Firebase compat (Realtime Database) -->
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.5.2/firebase-database-compat.js"></script>
+
+  <style>
+    /* Small visual tweaks to match the reference */
+    .card { border-radius: 12px; }
+    .stat-value { font-size: 1.625rem; font-weight: 700; } /* ~2xl bold */
+    .stat-change { font-size: .875rem; }
+    canvas { width: 100% !important; height: 140px !important; } 
+  </style>
+</head>
+<body class="bg-gray-50 text-gray-900 antialiased">
+  <!-- NAV -->
+  <header class="bg-white shadow-sm">
+    <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        
+        <div class="text-lg font-semibold">WeatherWise</div>
+      </div>
+      <nav class="hidden md:flex gap-6 text-sm text-gray-700">
+        <a href="#" class="hover:text-blue-600">Dashboard</a>
+        <a href="#" class="hover:text-blue-600">Forecast</a>
+        <a href="#" class="hover:text-blue-600">Analysis</a>
+        <a href="#" class="hover:text-blue-600">Settings</a>
+      </nav>
+      
+    </div>
+  </header>
+
+  <!-- MAIN -->
+  <main class="max-w-7xl mx-auto px-6 py-8">
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <!-- LEFT: Chat + Charts -->
+      <section class="lg:col-span-2 space-y-6">
+
+        <!-- Chat/Forecast -->
+        <div class="bg-white card shadow-sm p-6">
+  <h1 class="text-2xl font-bold mb-1">Election Weather Dashboard</h1>
+  <h2 class="text-base text-gray-600 mb-4">Weather Forecast</h2>
+
+  <div class="mb-4 flex">
+    <input id="chatPrompt" placeholder="Ask me about the best election day this week" style="width: 600px;"
+           class="w-full border rounded-lg px-2 py-1 text-sm" />
+    <button id="sendBtn" class="ml-2 px-4 py-3 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">Send</button>
+  </div>
+
+  <div id="chatArea" class="space-y-4">
+    <div class="flex items-start gap-3">
+      <div class="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center text-white">🤖</div>
+      <div class="bg-gray-100 text-gray-900 p-3 rounded max-w-md">Hello! I'm WeatherWise Bot. Ask me about the best election day this week, and I'll analyze the weather forecast for you.</div>
+    </div>
+
+  
+  </div>
+</div>
+
+<script>
+  // ...existing code...
+
+  // ...existing code...
+
+  // Chat send button logic
+  const chatPrompt = document.getElementById('chatPrompt');
+  const sendBtn = document.getElementById('sendBtn');
+  const chatArea = document.getElementById('chatArea');
+
+  sendBtn.addEventListener('click', async () => {
+    const value = chatPrompt.value.trim();
+    if (!value) return;
+
+    // Add user message to chat
+    const userMsg = document.createElement('div');
+    userMsg.className = "flex justify-end gap-3";
+    userMsg.innerHTML = `
+      <div class="bg-blue-600 text-white p-3 rounded max-w-xl" style="background-color: #2ba0ee; color: #1B1B1B">${value}</div>
+      <img src="https://icon-library.com/images/about-me-icon-png/about-me-icon-png-9.jpg" class="rounded-full w-8 h-8" alt="user"/>
+    `;
+    chatArea.appendChild(userMsg);
+
+    // Add loading indicator
+    const loadingMsg = document.createElement('div');
+    loadingMsg.className = "flex items-start gap-3";
+    loadingMsg.innerHTML = `
+      <div class="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center text-white">🤖</div>
+      <div class="bg-gray-100 text-gray-900 p-3 rounded-lg max-w-xl flex items-center gap-2">
+        <span class="animate-spin inline-block w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full mr-2"></span>
+        <span>Thinking...</span>
+      </div>
+    `;
+    chatArea.appendChild(loadingMsg);
+    chatArea.scrollTop = chatArea.scrollHeight;
+
+    try {
+      const res = await fetch('http://127.0.0.1:8000/chat/ask', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: value })
+      });
+      const data = await res.json();
+
+      // Remove loading indicator
+      chatArea.removeChild(loadingMsg);
+
+      // Add bot response to chat
+      const botMsg = document.createElement('div');
+      botMsg.className = "flex items-start gap-3";
+      botMsg.innerHTML = `
+        <div class="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center text-white">🤖</div>
+        <div class="bg-gray-100 text-gray-900 p-3 rounded max-w-md">${data.response.replace(/\n/g, '<br>')}</div>
+      `;
+      chatArea.appendChild(botMsg);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    } catch (err) {
+      chatArea.removeChild(loadingMsg);
+      const errorMsg = document.createElement('div');
+      errorMsg.className = "flex items-start gap-3";
+      errorMsg.innerHTML = `
+        <div class="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center text-white">🤖</div>
+        <div class="bg-red-100 text-red-700 p-3 rounded-lg max-w-xl">Sorry, I couldn't get a response from the server.</div>
+      `;
+      chatArea.appendChild(errorMsg);
+      chatArea.scrollTop = chatArea.scrollHeight;
+    }
+
+    chatPrompt.value = "";
+    chatPrompt.focus();
+  });
+
+  // Optional: allow Enter key to send
+  chatPrompt.addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendBtn.click();
+  });
+
+  // ...existing code...
+</script>
+
+        <!-- IoT Device Data grid: 3 cards stacked (will look like the reference) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- Temperature card -->
+          <div class="bg-white card shadow-sm p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm text-gray-500">Temperature</div>
+                <div id="tempValue" class="stat-value">--°C</div>
+                <div id="tempChange" class="stat-change text-green-600">Today 0%</div>
+              </div>
+              <div class="text-gray-400 text-sm">7d</div>
+            </div>
+            <div class="mt-3">
+              <canvas id="tempChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Humidity card -->
+          <div class="bg-white card shadow-sm p-6">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm text-gray-500">Humidity</div>
+                <div id="humValue" class="stat-value">--%</div>
+                <div id="humChange" class="stat-change text-red-500">Today 0%</div>
+              </div>
+              <div class="text-gray-400 text-sm">7d</div>
+            </div>
+            <div class="mt-3">
+              <canvas id="humChart"></canvas>
+            </div>
+          </div>
+
+          <!-- Pressure: wide card that spans two columns on md -->
+          <div class="bg-white card shadow-sm p-6 md:col-span-2">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="text-sm text-gray-500">Atmospheric Pressure</div>
+                <div id="pressValue" class="stat-value">-- hPa</div>
+                <div id="pressChange" class="stat-change text-green-600">Today 0%</div>
+              </div>
+              <div class="text-gray-400 text-sm">7d</div>
+            </div>
+            <div class="mt-3">
+              <canvas id="pressChart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- RIGHT: Suggestions -->
+      <aside class="space-y-6">
+  <div class="bg-white card shadow-sm p-6">
+    <h3 class="font-semibold text-lg mb-4" style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">Election Day Suggestions</h3>
+    <div id="electionSuggestions" class="space-y-2 text-sm text-gray-600">
+      <p>Loading suggestions...</p>
+    </div>
+  </div>
+</aside>
+
+    </div>
+  </main>
+
+  <!-- SCRIPT: Firebase + Chart.js logic -->
+  <script>
+    // ---------- Firebase initialization (compat) ----------
+    const firebaseConfig = {
+      // We're only using databaseURL for public read (compat). If you need authentication, add credentials.
+      databaseURL: "https://mlweather-project-default-rtdb.firebaseio.com"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.database();
+
+    // ---------- Chart.js base factory (thin smooth lines) ----------
+    function createTinyChart(ctx, color) {
+      return new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+          datasets: [{
+            label: 'series',
+            data: Array(7).fill(null),
+            borderColor: color,
+            borderWidth: 2,
+            fill: false,
+            tension: 0.4,
+            pointRadius: 0
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: {
+              grid: { display: false },
+              ticks: { color: '#9CA3AF' }
+            },
+            y: {
+              display: false,
+              grid: { display: false }
+            }
+          },
+          elements: {
+            line: { capStyle: 'round' }
+          }
+        }
+      });
+    }
+
+    // create charts
+    const tempChart = createTinyChart(document.getElementById('tempChart').getContext('2d'), '#ef4444');
+    const humChart  = createTinyChart(document.getElementById('humChart').getContext('2d'), '#3b82f6');
+    const pressChart= createTinyChart(document.getElementById('pressChart').getContext('2d'), '#10b981');
+
+    // helpers for DOM
+    const el = id => document.getElementById(id);
+    const tempValueEl = el('tempValue'), tempChangeEl = el('tempChange');
+    const humValueEl  = el('humValue'), humChangeEl  = el('humChange');
+    const pressValueEl= el('pressValue'), pressChangeEl= el('pressChange');
+
+    // ---------- Processing sensorData from Firebase ----------
+    // We'll read sensorData node and maintain an ordered list of entries (by push key order).
+    // Each entry expected to include temperature, Humidity/humidity and atm_press/pressure.
+    // We'll use the last 7 entries to populate the charts (right-aligned). Percentage change compares latest to previous.
+
+    function normalizeRecord(rec) {
+      // Accept different field names, return normalized numeric values or null
+      const temperature = rec.temperature ?? rec.temp ?? null;
+      const humidity = rec.Humidity ?? rec.humidity ?? rec.hum ?? null;
+      const pressure = rec.atm_press ?? rec.pressure ?? rec.atmPressure ?? null;
+      return {
+        temperature: (temperature !== undefined && temperature !== null) ? Number(temperature) : null,
+        humidity: (humidity !== undefined && humidity !== null) ? Number(humidity) : null,
+        pressure: (pressure !== undefined && pressure !== null) ? Number(pressure) : null
+      };
+    }
+
+    function lastN(arr, n) {
+      if (!Array.isArray(arr)) return [];
+      return arr.slice(Math.max(0, arr.length - n));
+    }
+
+    // compute percentage change safely (from prev to latest)
+    function percentChange(prev, latest) {
+      if (prev === null || prev === 0 || prev === undefined) {
+        // If prev is zero or missing, show 0 to avoid divide-by-zero or confusing values.
+        return 0;
+      }
+      // step-by-step arithmetic:
+      // diff = latest - prev
+      const diff = latest - prev;
+      // ratio = diff / prev
+      const ratio = diff / prev;
+      // percent = ratio * 100
+      const percent = ratio * 100;
+      // return rounded integer
+      return Math.round(percent);
+    }
+
+    // Update chart dataset with last 7 numeric values (right-aligned)
+    function updateChartWithLast7(chart, numbers) {
+      // take last 7 numbers
+      const last7 = lastN(numbers.filter(v => v !== null && v !== undefined), 7);
+      // ensure length 7 (pad left with nulls)
+      const padded = Array(Math.max(0, 7 - last7.length)).fill(null).concat(last7);
+      chart.data.datasets[0].data = padded;
+      chart.update();
+    }
+
+    // Update UI stat (value + change)
+    function updateStat(valueEl, changeEl, latest, prev, unit, positiveIsGood = true) {
+      if (latest === null || latest === undefined || Number.isNaN(latest)) {
+        valueEl.textContent = `--${unit}`;
+        changeEl.textContent = `Today 0%`;
+        changeEl.className = 'stat-change text-gray-500';
+        return;
+      }
+      // display value
+      valueEl.textContent = `${latest}${unit}`;
+      // compute percent change
+      const pct = percentChange(prev, latest);
+      const sign = (pct > 0) ? '+' : '';
+      changeEl.textContent = `Today ${sign}${pct}%`;
+      // color: green when improvement (pct>0) else red; user might want different logic for humidity
+      if (pct > 0) changeEl.className = 'stat-change text-green-600';
+      else if (pct < 0) changeEl.className = 'stat-change text-red-500';
+      else changeEl.className = 'stat-change text-gray-500';
+    }
+
+    // ---------- Listen to Firebase node sensorData ----------
+    const sensorRef = db.ref('sensorData');
+
+    sensorRef.on('value', snapshot => {
+      const raw = snapshot.val();
+      if (!raw) return;
+
+      // raw is likely an object of push keys -> entries
+      // convert to array in insertion order (Object.keys preserves insertion for Firebase push keys)
+      const keys = Object.keys(raw);
+      const records = keys.map(k => normalizeRecord(raw[k]));
+
+      // build arrays for each metric
+      const temps = records.map(r => r.temperature);
+      const hums  = records.map(r => r.humidity);
+      const presses = records.map(r => r.pressure);
+
+      // Update charts with last 7 values
+      updateChartWithLast7(tempChart, temps);
+      updateChartWithLast7(humChart, hums);
+      updateChartWithLast7(pressChart, presses);
+
+      // compute latest and previous values for each metric
+      const latestTemp = temps.length ? temps[temps.length-1] : null;
+      const prevTemp   = temps.length > 1 ? temps[temps.length-2] : null;
+
+      const latestHum  = hums.length ? hums[hums.length-1] : null;
+      const prevHum    = hums.length > 1 ? hums[hums.length-2] : null;
+
+      const latestPress = presses.length ? presses[presses.length-1] : null;
+      const prevPress   = presses.length > 1 ? presses[presses.length-2] : null;
+
+      // Update stat displays
+      updateStat(tempValueEl, tempChangeEl, latestTemp, prevTemp, '°C');
+      updateStat(humValueEl, humChangeEl, latestHum, prevHum, '%');
+      updateStat(pressValueEl, pressChangeEl, latestPress, prevPress, ' hPa');
+    }, error => {
+      console.error('Firebase read error:', error);
+    });
+
+    // Optional: attempt to keep charts labeled Mon..Sun meaningfully:
+    // We simply render labels Mon..Sun as fixed. If you'd like dynamic day labels aligned to the last 7 readings
+    // (e.g., Tue..Mon if today is Monday), tell me and I'll adjust to rotate labels by current weekday.
+
+    const suggestionContainer = document.getElementById("electionSuggestions");
+
+  // Map weather keywords to emoji
+  function getWeatherEmoji(description) {
+    const d = description.toLowerCase();
+    if (d.includes("sun") || d.includes("clear")) return "☀️";
+    if (d.includes("cloud")) return "⛅";
+    if (d.includes("rain")) return "🌧️";
+    if (d.includes("storm")) return "⛈️";
+    if (d.includes("mist") || d.includes("fog")) return "🌫️";
+    return "🌤️"; // fallback
+  }
+
+  // Convert "2025-08-10" to readable day (e.g., "Wednesday")
+  function getDayName(dateStr) {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString(undefined, { weekday: 'long' });
+  }
+
+  async function loadElectionSuggestions(city = "Akure,NG") {
+    try {
+      const response = await fetch(`http://127.0.0.1:8000/weather/ideal-election-days?city=Akure%2CNG`);
+      const data = await response.json();
+
+      const days = data.ideal_election_days || [];
+
+      if (!Array.isArray(days) || days.length === 0) {
+        suggestionContainer.innerHTML = "<p>No ideal days found in the forecast.</p>";
+        return;
+      }
+
+      suggestionContainer.innerHTML = ""; // clear previous content
+
+      for (const day of days) {
+        const emoji = getWeatherEmoji(day.weather_conditions[0] || "");
+        const dayName = getDayName(day.date);
+        const description = `${day.average_temperature}°C, ${day.average_humidity}% Humidity, ${day.average_pressure} hPa — ${day.weather_conditions.join(", ")}`;
+
+        const suggestionHTML = `
+          <div class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50">
+            <div class="bg-gray-100 rounded-lg p-2 text-lg">${emoji}</div>
+            <div>
+              <div class="font-medium">${dayName}</div>
+              <div class="text-sm text-gray-600">${description}</div>
+            </div>
+          </div>
+        `;
+        suggestionContainer.innerHTML += suggestionHTML;
+      }
+
+    } catch (err) {
+      console.error("Error loading election day suggestions:", err);
+      suggestionContainer.innerHTML = "<p class='text-red-500'>Failed to load suggestions.</p>";
+    }
+  }
+
+  // Call on page load
+  loadElectionSuggestions(); // Or pass another city
+  </script>
+</body>
+</html>
