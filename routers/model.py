@@ -9,7 +9,7 @@ import asyncio
 env_path = Path(__file__).resolve().parent / ".env"
 load_dotenv(dotenv_path=env_path)
 
-aai.settings.api_key = os.getenv("ASSEMBLYAI_API_KEY")
+#aai.settings.api_key = os.getenv("ASSEMBLYAI_API_KEY")
 
 # Don't run this on import! Move to __main__
 async def main():
@@ -69,3 +69,4 @@ async def ask_question(question: str, city="Akure,NG"):
 
 if __name__ == "__main__":
     asyncio.run(main())  # ✅ only runs when executed directly
+
