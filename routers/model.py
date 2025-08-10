@@ -2,7 +2,6 @@ from groq import Groq
 import os
 from pathlib import Path
 from dotenv import load_dotenv
-import assemblyai as aai
 from .weather import fetch_days  # assuming it's a relative import
 import asyncio
 
@@ -69,4 +68,5 @@ async def ask_question(question: str, city="Akure,NG"):
 
 if __name__ == "__main__":
     asyncio.run(main())  # ✅ only runs when executed directly
+
 
