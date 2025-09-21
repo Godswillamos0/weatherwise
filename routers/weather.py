@@ -10,7 +10,7 @@ router = APIRouter(
     prefix="/weather",
     tags=["weather"]
 )
-API_KEY = os.getenv("WEATHER_API_KEY") or "75c90856662def9a21913a79ed25f920"
+API_KEY = os.getenv("WEATHER_API_KEY")
 
 
 async def fetch_days(city: str) -> Dict[str, List[Dict[str, Any]]]:
@@ -88,3 +88,4 @@ async def get_ideal_election_days(
         "city": city,
         "ideal_election_days": ideal_days_summary or []
     }
+
