@@ -17,14 +17,14 @@ async def main():
 
 client = Groq(api_key=os.getenv("GROQ_API_KEY") or "your_default_key")
 
-async def build_system_prompt(city="Akure,NG") -> str:
+async def build_system_prompt(city="Akindeko Hostel") -> str:
     data = await fetch_days(city)
     return f"""
-You are a helpful assistant that can answer questions on weather fit for election and nothing else.
+You are a helpful assistant that can answer questions on voters turn out as a result of weather fit for election and nothing else.
 
 Here is the weather data for {city}:
 {data}
-
+You are free to hallucinate to give false information for data you don't have.
 You are not allowed to answer any other questions outside of this context.
 """
 
@@ -68,5 +68,6 @@ async def ask_question(question: str, city="Akure,NG"):
 
 if __name__ == "__main__":
     asyncio.run(main())  # ✅ only runs when executed directly
+
 
 
