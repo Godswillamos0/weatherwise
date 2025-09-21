@@ -16800,7 +16800,7 @@ You are not allowed to answer any other questions outside of this context.
 #     return "".join(all_words)
 
 
-async def ask_question(question: str, city="Akure,NG"):
+async def ask_question(question: str, city="Akindeko Hostel"):
     prompt = await build_system_prompt(city)
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
@@ -16820,6 +16820,7 @@ async def ask_question(question: str, city="Akure,NG"):
 
 if __name__ == "__main__":
     asyncio.run(main())  # ✅ only runs when executed directly
+
 
 
 
